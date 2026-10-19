@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2f6b3f">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Recolección de Especies</title>
+<style>
+:root{
+  --bg:#f3f5f1;--surface:#fff;--sunk:#e8ece4;--line:#d3dacd;--fg:#1c241d;--muted:#5d6a5f;
+  --accent:#2f6b3f;--accent-fg:#fff;--accent-soft:#dcebdf;--ok:#2f7a45;--warn:#9a6a0b;--bad:#b23a2e;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  color-scheme:light}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#121713;--surface:#1a211b;--sunk:#232c24;--line:#344036;--fg:#e6ece6;--muted:#9aa89c;
+  --accent:#6fbf83;--accent-fg:#0f1a12;--accent-soft:#22382a;--ok:#6fbf83;--warn:#e0b04f;--bad:#ec7b6e;color-scheme:dark}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 var(--sans)}
+.top{position:sticky;top:0;z-index:5;background:var(--accent);color:var(--accent-fg);
+  padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));
+  display:flex;align-items:center;justify-content:space-between;gap:10px}
+.top b{font-size:1.05rem}
+.top small{display:block;opacity:.85;font-size:.78rem}
+.net{font-size:.72rem;font-weight:700;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.2);white-space:nowrap}
+main{max-width:720px;margin:0 auto;padding:14px max(14px,env(safe-area-inset-right,0px)) calc(90px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px}
+h2{font-size:1.05rem;margin:0 0 12px}
+label{display:block;font-size:.74rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+input,select,button{font:inherit}
+input,select{width:100%;padding:13px 12px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--fg);font-size:1.05rem}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+input[aria-invalid="true"]{border-color:var(--bad);border-width:2px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.full{grid-column:1/-1}
+.btn{border:0;border-radius:9px;padding:13px 16px;font-weight:700;cursor:pointer;background:var(--accent);color:var(--accent-fg);font-size:1rem}
+.btn.ghost{background:var(--sunk);color:var(--fg)}
+.btn.sm{padding:8px 11px;font-size:.85rem}
+.btn.wide{width:100%}
+.btn:disabled{opacity:.5}
+.btn:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.between{justify-content:space-between}
+.muted{color:var(--muted)}
+.hint{font-size:.8rem;color:var(--muted)}
+.err{color:var(--bad);font-size:.88rem;min-height:1.2em}
+.gps{border:1px dashed var(--line);border-radius:9px;padding:10px 12px;font-size:.88rem}
+.gps b{font-family:var(--mono)}
+.counter{font:700 2.2rem/1 var(--mono);font-variant-numeric:tabular-nums}
+.counter small{font:400 .95rem var(--sans);color:var(--muted)}
+.bar{height:10px;background:var(--sunk);border-radius:999px;overflow:hidden;margin:10px 0 6px}
+.bar i{display:block;height:100%;background:var(--accent)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th,td{padding:8px 9px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--sunk)}
+td.n{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+.empty{text-align:center;color:var(--muted);padding:22px 8px}
+.check{display:flex;align-items:center;gap:8px;font-size:.92rem;text-transform:none;letter-spacing:0;font-weight:500;color:var(--fg);margin:0}
+.check input{width:22px;height:22px}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface);border-top:1px solid var(--line);
+  padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+.tabs button{border:0;background:transparent;color:var(--muted);padding:10px 4px;font-weight:700;font-size:.85rem;border-radius:8px}
+.tabs button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:9px;z-index:9;font-size:.92rem;max-width:90vw}
+.warnbox{background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:.88rem}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header class="top">
+  <div><b id="hName">Recolección de Especies</b><small id="hSub">Sin configurar</small></div>
+  <span class="net" id="net">…</span>
+</header>
+
+<main>
+  <!-- CONFIGURACIÓN INICIAL -->
+  <section id="v-setup" hidden class="card">
+    <h2>Configuración del recolector</h2>
+    <form id="setupForm" class="g2">
+      <div class="full"><label for="sName">Nombre del recolector</label><input id="sName" maxlength="60" autocomplete="name" required></div>
+      <div class="full"><label for="sProj">Proyecto</label><input id="sProj" maxlength="80" placeholder="Ej. Inventario forestal 2026"></div>
+      <div class="full"><label for="sSrc">Sistema de coordenadas</label>
+        <select id="sSrc"><option value="9377">CTM12 – Origen Nacional (EPSG:9377)</option><option value="4326">WGS84 grados decimales (EPSG:4326)</option></select></div>
+      <div><label for="sCap">Meta de especies</label><input id="sCap" class="num" type="number" min="1" max="50000" value="50000"></div>
+      <div class="full"><button class="btn wide" type="submit">Guardar y empezar</button></div>
+      <div class="full err" id="setupErr"></div>
+    </form>
+  </section>
+
+  <!-- CAPTURA -->
+  <section id="v-cap" hidden style="display:flex;flex-direction:column;gap:14px">
+    <div class="card">
+      <div class="row between"><span class="muted" style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Avance</span><span class="hint" id="lastExp"></span></div>
+      <div class="counter" style="margin-top:6px"><span id="cCount">0</span> <small>/ <span id="cCap">50.000</span></small></div>
+      <div class="bar"><i id="cBar" style="width:0"></i></div>
+    </div>
+    <div class="card">
+      <h2>Nueva especie</h2>
+      <form id="capForm" class="g2" novalidate autocomplete="off">
+        <div class="full"><label for="fCode">1. Código de especie</label><input id="fCode" list="codes" maxlength="40" autocapitalize="characters" style="text-transform:uppercase"><datalist id="codes"></datalist></div>
+        <div class="full"><label for="fH">2. Altura (m)</label><input id="fH" class="num" inputmode="decimal" placeholder="0,00"></div>
+        <div class="full gps">
+          <div class="row between"><span>Posición GPS: <b id="gAcc">sin lectura</b></span>
+            <button type="button" class="btn sm" id="gBtn">Tomar GPS</button></div>
+          <div class="hint" id="gMsg">Funciona sin internet. Espera a que la precisión baje de 10 m.</div>
+        </div>
+        <div><label for="fX" id="lX">3. X Este (m)</label><input id="fX" class="num" inputmode="decimal"></div>
+        <div><label for="fY" id="lY">Y Norte (m)</label><input id="fY" class="num" inputmode="decimal"></div>
+        <div class="full"><label for="fZ">Elevación (m s.n.m.)</label><input id="fZ" class="num" inputmode="decimal"></div>
+        <div class="full"><label class="check" for="fKeep"><input type="checkbox" id="fKeep"> Mantener coordenadas para la siguiente especie</label></div>
+        <div class="full err" id="capErr"></div>
+        <div class="full"><button class="btn wide" type="submit">Guardar especie</button></div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Últimas especies</h2>
+      <div id="recent"></div>
+    </div>
+  </section>
+
+  <!-- REGISTROS -->
+  <section id="v-list" hidden class="card">
+    <div class="row between" style="margin-bottom:10px"><h2 style="margin:0">Mis registros</h2><input id="q" placeholder="Buscar código" style="max-width:170px;padding:9px"></div>
+    <div id="list"></div>
+  </section>
+
+  <!-- ENVIAR -->
+  <section id="v-exp" hidden style="display:flex;flex-direction:column;gap:14px">
+    <div class="card">
+      <h2>Enviar datos al administrador</h2>
+      <p class="muted" style="margin-top:0">Los datos están guardados en este celular. Exporta el archivo y envíalo por WhatsApp o correo cuando tengas señal. Hazlo al final de cada jornada como copia de seguridad.</p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn wide" id="bShare">Compartir CSV (WhatsApp, correo…)</button>
+        <button class="btn ghost wide" id="bCsv">Descargar CSV</button>
+        <button class="btn ghost wide" id="bGeo">Descargar GeoJSON (para QGIS/ArcGIS)</button>
+      </div>
+      <p class="hint" id="expInfo"></p>
+    </div>
+    <div class="card">
+      <h2>Ajustes</h2>
+      <div class="warnbox" id="storeInfo">Comprobando almacenamiento…</div>
+      <div class="row" style="margin-top:12px"><button class="btn ghost sm" id="bEdit">Cambiar nombre / coordenadas</button></div>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs" id="tabs" hidden>
+  <button data-v="v-cap" aria-selected="true">Capturar</button>
+  <button data-v="v-list">Registros</button>
+  <button data-v="v-exp">Enviar</button>
+</nav>
+<div class="toast" id="toast" hidden></div>
+
+<script src="ctm12.js"></script>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const nf=new Intl.NumberFormat("es-CO");
+const fx=(n,d)=>Number(n).toLocaleString("es-CO",{minimumFractionDigits:d,maximumFractionDigits:d});
+const fT=t=>new Date(t).toLocaleString("es-CO",{dateStyle:"short",timeStyle:"short"});
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2800)}
+const LS={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+/* ---------- configuración (también acepta ?r=Nombre&p=Proyecto&src=9377&meta=50000 desde el enlace del administrador) ---------- */
+let cfg=LS.get("cfg");
+const qs=new URLSearchParams(location.search);
+if(!cfg&&qs.get("r"))cfg=null;
+function setupDefaults(){
+  $("sName").value=(cfg&&cfg.nombre)||qs.get("r")||"";
+  $("sProj").value=(cfg&&cfg.proyecto)||qs.get("p")||"";
+  $("sSrc").value=(cfg&&cfg.src)||qs.get("src")||"9377";
+  $("sCap").value=(cfg&&cfg.meta)||qs.get("meta")||50000;
+}
+$("setupForm").onsubmit=e=>{e.preventDefault();
+  const nombre=$("sName").value.trim(),meta=Math.round(+$("sCap").value);
+  if(nombre.length<3){$("setupErr").textContent="Escribe tu nombre (mínimo 3 letras).";return}
+  if(!(meta>=1&&meta<=50000)){$("setupErr").textContent="La meta debe estar entre 1 y 50.000.";return}
+  cfg={nombre,proyecto:$("sProj").value.trim(),src:$("sSrc").value,meta,id:(cfg&&cfg.id)||("R"+Date.now().toString(36).toUpperCase())};
+  LS.set("cfg",cfg);start();
+};
+
+/* ---------- base de datos local (IndexedDB) ---------- */
+let db,recs=[];
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open("especies",1);
+  r.onupgradeneeded=()=>r.result.createObjectStore("rec",{keyPath:"id"});
+  r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+function tx(mode,fn){return new Promise((res,rej)=>{const t=db.transaction("rec",mode);const s=t.objectStore("rec");const out=fn(s);
+  t.oncomplete=()=>res(out&&out.result);t.onerror=()=>rej(t.error)})}
+async function loadAll(){const all=await tx("readonly",s=>s.getAll());recs=(all||[]).sort((a,b)=>a.t-b.t)}
+
+/* ---------- vistas ---------- */
+function show(v){["v-setup","v-cap","v-list","v-exp"].forEach(x=>$(x).hidden=x!==v);
+  document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v));
+  if(v==="v-list")renderList();if(v==="v-exp")renderExp();window.scrollTo(0,0)}
+document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>show(b.dataset.v));
+$("bEdit").onclick=()=>{setupDefaults();$("tabs").hidden=true;show("v-setup")};
+
+const geo=()=>cfg.src==="4326";
+const dx=()=>geo()?6:2;
+function applyCfg(){
+  $("hName").textContent=cfg.nombre;
+  $("hSub").textContent=(cfg.proyecto?cfg.proyecto+" · ":"")+(geo()?"WGS84":"CTM12 EPSG:9377");
+  $("lX").textContent=geo()?"3. Longitud (X)":"3. X Este (m)";
+  $("lY").textContent=geo()?"Latitud (Y)":"Y Norte (m)";
+  $("fX").placeholder=geo()?"-75,812345":"4732450,25";$("fY").placeholder=geo()?"9,123456":"2531870,10";
+  $("cCap").textContent=nf.format(cfg.meta);
+}
+function renderCount(){const n=recs.length,p=Math.min(100,n/cfg.meta*100);
+  $("cCount").textContent=nf.format(n);$("cBar").style.width=p+"%";
+  const le=LS.get("lastExport");$("lastExp").textContent=le?"Último envío: "+fT(le.t)+" ("+nf.format(le.n)+")":"Sin envíos aún"}
+function row(r,del){return `<tr><td>${esc(r.c)}</td><td class="n">${fx(r.h,2)}</td><td class="n">${fx(r.x,dx())}</td><td class="n">${fx(r.y,dx())}</td><td class="n">${r.z==null?"—":fx(r.z,1)}</td><td>${fT(r.t)}</td>${del?`<td><button class="btn ghost sm" data-del="${r.id}">Borrar</button></td>`:""}</tr>`}
+const head=`<thead><tr><th>Código</th><th>Altura</th><th>X</th><th>Y</th><th>Elev.</th><th>Fecha</th><th></th></tr></thead>`;
+function renderRecent(){const l=recs.slice(-6).reverse();
+  $("recent").innerHTML=l.length?`<div class="tbl"><table>${head}<tbody>${l.map(r=>row(r,true)).join("")}</tbody></table></div>`:`<div class="empty">Aquí verás cada especie que guardes.</div>`}
+let page=0;
+function renderList(){const q=$("q").value.trim().toUpperCase();let l=recs.slice().reverse();if(q)l=l.filter(r=>r.c.includes(q));
+  const per=100,pages=Math.max(1,Math.ceil(l.length/per));page=Math.min(page,pages-1);
+  $("list").innerHTML=l.length?`<div class="tbl"><table>${head}<tbody>${l.slice(page*per,page*per+per).map(r=>row(r,true)).join("")}</tbody></table></div>
+  <div class="row between" style="margin-top:10px"><span class="hint">${nf.format(l.length)} registros · pág. ${page+1}/${pages}</span><span class="row"><button class="btn ghost sm" id="pp" ${page?"":"disabled"}>Anterior</button><button class="btn ghost sm" id="pn" ${page<pages-1?"":"disabled"}>Siguiente</button></span></div>`
+  :`<div class="empty">${q?"Sin resultados para ese código.":"Todavía no hay registros."}</div>`;
+  if($("pp")){$("pp").onclick=()=>{page--;renderList()};$("pn").onclick=()=>{page++;renderList()}}}
+$("q").oninput=()=>{page=0;renderList()};
+function fillCodes(){const s=[...new Set(recs.slice(-3000).map(r=>r.c))].slice(-200);$("codes").innerHTML=s.map(c=>`<option value="${esc(c)}">`).join("")}
+
+document.addEventListener("click",async e=>{const b=e.target.closest("[data-del]");if(!b)return;
+  const r=recs.find(x=>x.id===b.dataset.del);if(!r)return;
+  if(!confirm(`¿Borrar el registro ${r.c} del ${fT(r.t)}?`))return;
+  await tx("readwrite",s=>s.delete(r.id));recs=recs.filter(x=>x!==r);
+  renderCount();renderRecent();if(!$("v-list").hidden)renderList();toast("Registro borrado")});
+
+/* ---------- GPS ---------- */
+let watch=null,best=null,gTimer=null;
+function stopGPS(){if(watch!=null)navigator.geolocation.clearWatch(watch);watch=null;clearTimeout(gTimer);$("gBtn").textContent="Tomar GPS"}
+$("gBtn").onclick=()=>{
+  if(watch!=null){stopGPS();return}
+  if(!("geolocation" in navigator)){$("gMsg").textContent="Este navegador no tiene GPS disponible.";return}
+  best=null;$("gBtn").textContent="Detener";$("gMsg").textContent="Buscando satélites… al aire libre es más rápido.";
+  watch=navigator.geolocation.watchPosition(p=>{
+    const c=p.coords;if(best&&c.accuracy>=best.accuracy)return;best=c;
+    if(geo()){$("fX").value=fx(c.longitude,6);$("fY").value=fx(c.latitude,6)}
+    else{const [x,y]=toCTM12(c.latitude,c.longitude);$("fX").value=fx(x,2);$("fY").value=fx(y,2)}
+    if(c.altitude!=null)$("fZ").value=fx(c.altitude,1);
+    $("gAcc").textContent="±"+fx(c.accuracy,1)+" m";
+    $("gMsg").textContent=c.altitude==null?"Este equipo no entrega altitud: escribe la elevación a mano.":"La elevación del GPS del celular es aproximada (±10–30 m).";
+    if(c.accuracy<=5)stopGPS();
+  },err=>{stopGPS();$("gMsg").textContent=err.code===1?"Permiso de ubicación negado. Actívalo en los ajustes del navegador.":"No se obtuvo señal GPS. Intenta en un lugar más despejado."},
+  {enableHighAccuracy:true,maximumAge:0,timeout:60000});
+  gTimer=setTimeout(stopGPS,90000);
+};
+
+/* ---------- captura ---------- */
+function num(v){v=String(v).trim().replace(/\s/g,"");if(!v)return NaN;
+  if(v.includes(","))v=v.replace(/\./g,"").replace(",",".");return Number(v)}
+$("capForm").onsubmit=async e=>{e.preventDefault();
+  const c=$("fCode").value.trim().toUpperCase(),h=num($("fH").value),x=num($("fX").value),y=num($("fY").value),zs=$("fZ").value.trim(),z=num(zs);
+  const xr=geo()?[-82,-66]:[4000000,5900000],yr=geo()?[-5,14]:[1000000,3200000],bad=[];
+  ["fCode","fH","fX","fY","fZ"].forEach(i=>$(i).removeAttribute("aria-invalid"));
+  if(!c)bad.push(["fCode","Falta el código."]);
+  if(!(h>0&&h<150))bad.push(["fH","Altura entre 0 y 150 m."]);
+  if(!(x>=xr[0]&&x<=xr[1]))bad.push(["fX","X fuera de Colombia."]);
+  if(!(y>=yr[0]&&y<=yr[1]))bad.push(["fY","Y fuera de Colombia."]);
+  if(!(z>=-50&&z<=6000))bad.push(["fZ","Elevación entre −50 y 6.000 m."]);
+  if(bad.length){bad.forEach(b=>$(b[0]).setAttribute("aria-invalid","true"));$("capErr").textContent=bad.map(b=>b[1]).join(" ");$(bad[0][0]).focus();return}
+  if(recs.length>=cfg.meta){$("capErr").textContent="Ya llegaste a la meta de "+nf.format(cfg.meta)+".";return}
+  $("capErr").textContent="";
+  const r={id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),c,h:Math.round(h*100)/100,x,y,z:Math.round(z*10)/10,t:Date.now(),
+    acc:best&&watch==null?Math.round(best.accuracy*10)/10:(best?Math.round(best.accuracy*10)/10:null)};
+  try{await tx("readwrite",s=>s.add(r))}catch(err){$("capErr").textContent="No se pudo guardar en el celular: "+err;return}
+  recs.push(r);best=null;stopGPS();
+  $("fCode").value="";$("fH").value="";if(!$("fKeep").checked){$("fX").value="";$("fY").value="";$("fZ").value="";$("gAcc").textContent="sin lectura"}
+  renderCount();renderRecent();fillCodes();toast("Guardado: "+c);$("fCode").focus();
+};
+
+/* ---------- exportar ---------- */
+const slug=s=>String(s).normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/gi,"_").toLowerCase();
+const fname=ext=>`especies_${slug(cfg.nombre)}_${new Date().toISOString().slice(0,10)}.${ext}`;
+const q=s=>`"${String(s).replace(/"/g,'""')}"`;
+function csv(){const L=["recolector,recolector_id,proyecto,codigo_especie,altura_m,x,y,elevacion_m,precision_gps_m,fecha_captura,epsg,id_registro"];
+  recs.forEach(r=>L.push([q(cfg.nombre),cfg.id,q(cfg.proyecto||""),q(r.c),r.h,r.x,r.y,r.z,r.acc==null?"":r.acc,new Date(r.t).toISOString(),cfg.src,r.id].join(",")));
+  return "﻿"+L.join("\r\n")}
+function geojson(){return JSON.stringify({type:"FeatureCollection",name:"especies_"+slug(cfg.nombre),
+  crs:{type:"name",properties:{name:"urn:ogc:def:crs:EPSG::"+cfg.src}},
+  features:recs.map(r=>({type:"Feature",geometry:{type:"Point",coordinates:[r.x,r.y,r.z]},
+    properties:{recolector:cfg.nombre,codigo:r.c,altura_m:r.h,elevacion_m:r.z,precision_gps_m:r.acc,fecha:new Date(r.t).toISOString(),id:r.id}}))})}
+function download(text,name,type){const u=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
+function mark(){LS.set("lastExport",{t:Date.now(),n:recs.length});renderCount();renderExp()}
+$("bCsv").onclick=()=>{if(!recs.length)return toast("No hay registros");download(csv(),fname("csv"),"text/csv");mark()};
+$("bGeo").onclick=()=>{if(!recs.length)return toast("No hay registros");download(geojson(),fname("geojson"),"application/geo+json");mark()};
+$("bShare").onclick=async()=>{if(!recs.length)return toast("No hay registros");
+  const file=new File([csv()],fname("csv"),{type:"text/csv"});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:"Especies "+cfg.nombre,text:`${nf.format(recs.length)} especies – ${cfg.nombre}`});mark()}catch(e){if(e.name!=="AbortError")toast("No se pudo compartir")}}
+  else{download(csv(),fname("csv"),"text/csv");mark();toast("Tu navegador no permite compartir: se descargó el archivo")}};
+async function renderExp(){
+  $("expInfo").textContent=`${nf.format(recs.length)} registros en este celular · ID recolector ${cfg.id}`;
+  let txt="";
+  try{const p=navigator.storage&&navigator.storage.persist?await navigator.storage.persist():false;
+    const est=navigator.storage&&navigator.storage.estimate?await navigator.storage.estimate():null;
+    txt=(p?"Almacenamiento protegido: el navegador no borrará los datos por falta de espacio. ":"El navegador podría borrar los datos si el celular se queda sin espacio: exporta cada día. ")+
+      (est?`Usado ${fx(est.usage/1048576,1)} MB.`:"")}catch(e){txt="Exporta los datos al final de cada jornada."}
+  $("storeInfo").textContent=txt+" No borres los datos de navegación de este sitio."}
+
+/* ---------- red / instalación ---------- */
+function net(){$("net").textContent=navigator.onLine?"En línea":"Sin internet"}
+addEventListener("online",net);addEventListener("offline",net);net();
+if("serviceWorker" in navigator&&location.protocol.startsWith("http"))navigator.serviceWorker.register("sw.js").catch(()=>{});
+
+async function start(){
+  try{db=db||await openDB();await loadAll()}catch(e){$("v-setup").hidden=false;$("setupErr").textContent="Este navegador no permite guardar datos (¿modo incógnito?).";return}
+  applyCfg();renderCount();renderRecent();fillCodes();$("tabs").hidden=false;show("v-cap");
+  if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
+}
+if(cfg)start();else{setupDefaults();show("v-setup")}
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#3f6fb8">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>Panel Administrador · Especies</title>
+<style>
+:root{
+  --bg:#f3f5f1;--surface:#fff;--sunk:#e8ece4;--line:#d3dacd;--fg:#1c241d;--muted:#5d6a5f;
+  --accent:#2f6b3f;--accent-fg:#fff;--node:#3f6fb8;--node-fg:#fff;--bad:#b23a2e;--warn:#9a6a0b;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--sans:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#121713;--surface:#1a211b;--sunk:#232c24;--line:#344036;--fg:#e6ece6;--muted:#9aa89c;
+  --accent:#6fbf83;--accent-fg:#0f1a12;--node:#6c98dc;--node-fg:#0d1626;--bad:#ec7b6e;--warn:#e0b04f;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--sans)}
+.wrap{max-width:1100px;margin:0 auto;padding:20px max(16px,env(safe-area-inset-right,0px)) 48px max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:18px}
+h1{font-size:1.5rem;margin:0}
+h2{font-size:1.08rem;margin:0 0 12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.between{justify-content:space-between}
+.btn{text-decoration:none;display:inline-block;border:0;border-radius:8px;padding:10px 15px;font:600 .92rem var(--sans);cursor:pointer;background:var(--accent);color:var(--accent-fg)}
+.btn.ghost{background:var(--sunk);color:var(--fg)}
+.btn.sm{padding:6px 10px;font-size:.82rem}
+.btn:disabled{opacity:.5}
+.muted{color:var(--muted)} .hint{font-size:.82rem;color:var(--muted)}
+.drop{text-transform:none;letter-spacing:0;font-weight:400;font-size:.95rem;color:var(--fg);margin:0;border:2px dashed var(--line);border-radius:12px;padding:26px;text-align:center;cursor:pointer}
+.drop.on{border-color:var(--accent);background:var(--sunk)}
+.org{overflow-x:auto}.org svg{display:block;margin:0 auto}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:.86rem}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--sunk)}
+td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+.bar{height:8px;background:var(--sunk);border-radius:999px;overflow:hidden;min-width:110px}.bar i{display:block;height:100%;background:var(--accent)}
+input,select{font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+label{display:block;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:3px}
+.out{font-family:var(--mono);font-size:.82rem;word-break:break-all;background:var(--sunk);padding:10px;border-radius:8px}
+.warn{color:var(--warn)}
+.empty{text-align:center;color:var(--muted);padding:22px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="row between">
+    <div><h1>Panel del administrador</h1><div class="muted">Consolida los archivos CSV que envían los recolectores de campo</div></div>
+    <a class="btn ghost" href="index.html">Abrir app de captura</a>
+  </div>
+
+  <div class="card">
+    <h2>Organigrama y avance</h2>
+    <div class="org" id="org"></div>
+  </div>
+
+  <div class="card">
+    <h2>1. Cargar archivos de los recolectores</h2>
+    <label class="drop" id="drop" for="file"><b>Toca o arrastra aquí los CSV</b><br><span class="hint">Puedes cargar varios a la vez. Los registros repetidos se ignoran, así que puedes volver a cargar un archivo más reciente del mismo recolector.</span></label>
+    <input type="file" id="file" accept=".csv,text/csv" multiple hidden>
+    <p class="hint" id="impMsg"></p>
+  </div>
+
+  <div class="card">
+    <div class="row between" style="margin-bottom:12px"><h2 style="margin:0">2. Recolectores</h2>
+      <div class="row"><label for="meta" style="margin:0">Meta</label><input id="meta" type="number" min="1" max="50000" value="50000" style="width:110px"></div></div>
+    <div class="tbl"><table><thead><tr><th>Recolector</th><th>ID</th><th style="text-align:right">Especies</th><th>Avance</th><th>Última captura</th><th>EPSG</th><th></th></tr></thead><tbody id="team"></tbody></table></div>
+  </div>
+
+  <div class="card">
+    <h2>3. Exportar consolidado</h2>
+    <div class="row"><button class="btn" id="eCsv">CSV consolidado</button><button class="btn ghost" id="eGeo">GeoJSON consolidado</button><button class="btn ghost" id="clear">Vaciar panel</button></div>
+    <p class="hint" id="eMsg"></p>
+  </div>
+
+  <div class="card">
+    <h2>4. Crear enlace para un recolector</h2>
+    <p class="hint" style="margin-top:0">El enlace abre la app con el nombre, proyecto y sistema de coordenadas ya llenos.</p>
+    <div class="g">
+      <div><label for="lN">Nombre</label><input id="lN" style="width:100%"></div>
+      <div><label for="lP">Proyecto</label><input id="lP" style="width:100%"></div>
+      <div><label for="lS">Coordenadas</label><select id="lS" style="width:100%"><option value="9377">CTM12 (9377)</option><option value="4326">WGS84 (4326)</option></select></div>
+    </div>
+    <div class="row" style="margin-top:10px"><button class="btn" id="lGo">Generar enlace</button><button class="btn ghost" id="lCopy" hidden>Copiar</button></div>
+    <div class="out" id="lOut" hidden style="margin-top:10px"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const nf=new Intl.NumberFormat("es-CO");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fT=t=>t?new Date(t).toLocaleString("es-CO",{dateStyle:"short",timeStyle:"short"}):"—";
+let db,rows=[];
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open("admin_especies",1);r.onupgradeneeded=()=>r.result.createObjectStore("rec",{keyPath:"id_registro"});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+function tx(mode,fn){return new Promise((res,rej)=>{const t=db.transaction("rec",mode);const o=fn(t.objectStore("rec"));t.oncomplete=()=>res(o&&o.result);t.onerror=()=>rej(t.error)})}
+
+function parseCSV(text){text=text.replace(/^﻿/,"");const out=[];let row=[],f="",q=false;
+  for(let i=0;i<text.length;i++){const c=text[i];
+    if(q){if(c==='"'){if(text[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+    else if(c==='"')q=true;else if(c===","){row.push(f);f=""}
+    else if(c==="\n"||c==="\r"){if(c==="\r"&&text[i+1]==="\n")i++;row.push(f);f="";if(row.length>1||row[0]!=="")out.push(row);row=[]}
+    else f+=c}
+  if(f!==""||row.length){row.push(f);out.push(row)}return out}
+
+async function importFiles(files){let added=0,seen=0,bad=[];
+  for(const file of files){const data=parseCSV(await file.text());const h=data.shift()||[];const ix=k=>h.indexOf(k);
+    if(ix("id_registro")<0||ix("codigo_especie")<0){bad.push(file.name);continue}
+    const items=data.map(r=>({recolector:r[ix("recolector")],recolector_id:r[ix("recolector_id")],proyecto:r[ix("proyecto")]||"",codigo_especie:r[ix("codigo_especie")],
+      altura_m:+r[ix("altura_m")],x:+r[ix("x")],y:+r[ix("y")],elevacion_m:r[ix("elevacion_m")]===""?null:+r[ix("elevacion_m")],
+      precision_gps_m:r[ix("precision_gps_m")]===""?null:+r[ix("precision_gps_m")],fecha_captura:r[ix("fecha_captura")],epsg:r[ix("epsg")],id_registro:r[ix("id_registro")]})).filter(r=>r.id_registro);
+    const known=new Set(rows.map(r=>r.id_registro));
+    const fresh=items.filter(r=>!known.has(r.id_registro));seen+=items.length;added+=fresh.length;
+    await tx("readwrite",s=>{fresh.forEach(r=>s.put(r))});rows.push(...fresh)}
+  $("impMsg").textContent=`${nf.format(seen)} registros leídos, ${nf.format(added)} nuevos.`+(bad.length?` No se reconoció el formato de: ${bad.join(", ")}.`:"");
+  render()}
+$("file").onchange=e=>{importFiles([...e.target.files]);e.target.value=""};
+const dz=$("drop");["dragover","dragenter"].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add("on")}));
+["dragleave","drop"].forEach(ev=>dz.addEventListener(ev,()=>dz.classList.remove("on")));
+dz.addEventListener("drop",e=>{e.preventDefault();importFiles([...e.dataTransfer.files])});
+
+function team(){const m=new Map();rows.forEach(r=>{let t=m.get(r.recolector_id);if(!t){t={id:r.recolector_id,nombre:r.recolector,n:0,last:0,epsg:new Set()};m.set(r.recolector_id,t)}
+  t.n++;const ts=Date.parse(r.fecha_captura)||0;if(ts>t.last){t.last=ts;t.nombre=r.recolector}t.epsg.add(r.epsg)});
+  return [...m.values()].sort((a,b)=>a.nombre.localeCompare(b.nombre))}
+const meta=()=>Math.min(50000,Math.max(1,+$("meta").value||50000));
+$("meta").oninput=render;
+function render(){const T=team(),c=meta();
+  $("team").innerHTML=T.length?T.map(t=>{const p=Math.min(100,t.n/c*100);return `<tr><td>${esc(t.nombre)}</td><td class="muted">${esc(t.id)}</td><td class="n">${nf.format(t.n)}</td>
+    <td><div class="bar"><i style="width:${p}%"></i></div><span class="hint">${p.toFixed(1)} %</span></td><td>${fT(t.last)}</td><td>${[...t.epsg].join(", ")}</td>
+    <td><button class="btn sm ghost" data-x="${esc(t.id)}">CSV</button></td></tr>`}).join("")
+    :`<tr><td colspan="7" class="empty">Carga los CSV que te envían los recolectores para ver su avance.</td></tr>`;
+  const ep=new Set(rows.map(r=>r.epsg));$("eMsg").innerHTML=`${nf.format(rows.length)} registros en total.`+(ep.size>1?` <span class="warn">Atención: hay registros en EPSG ${[...ep].join(" y ")}. Exporta por separado o reproyecta en QGIS.</span>`:"");
+  org(T,c)}
+function org(T,c){const n=Math.max(T.length,1),slot=190,W=Math.max(640,n*slot+40),H=300,cx=W/2,ys=212,total=T.reduce((s,t)=>s+t.n,0);
+  const xs=T.map((_,i)=>20+slot/2+i*slot+(W-40-n*slot)/2);
+  let s=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Organigrama"><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--node)"/></marker></defs>`;
+  xs.forEach(x=>s+=`<line x1="${cx}" y1="94" x2="${x}" y2="${ys-48}" stroke="var(--node)" stroke-width="1.4" marker-end="url(#a)"/>`);
+  s+=`<ellipse cx="${cx}" cy="58" rx="104" ry="40" fill="var(--node)"/><text x="${cx}" y="53" text-anchor="middle" fill="var(--node-fg)" font-size="14" font-weight="700" font-family="system-ui,sans-serif">ADMINISTRADOR</text><text x="${cx}" y="73" text-anchor="middle" fill="var(--node-fg)" font-size="12" font-family="ui-monospace,monospace">${nf.format(total)} especies</text>`;
+  T.forEach((t,i)=>{const x=xs[i],p=Math.min(1,t.n/c),nm=t.nombre.length>18?t.nombre.slice(0,17)+"…":t.nombre;
+    s+=`<ellipse cx="${x}" cy="${ys}" rx="86" ry="46" fill="var(--node)"/><text x="${x}" y="${ys-18}" text-anchor="middle" fill="var(--node-fg)" font-size="10" font-weight="700" font-family="system-ui,sans-serif">RECOLECTOR DE CAMPO</text>
+    <text x="${x}" y="${ys}" text-anchor="middle" fill="var(--node-fg)" font-size="13" font-weight="700" font-family="system-ui,sans-serif">${esc(nm)}</text>
+    <text x="${x}" y="${ys+17}" text-anchor="middle" fill="var(--node-fg)" font-size="11" font-family="ui-monospace,monospace">${nf.format(t.n)} / ${nf.format(c)}</text>
+    <rect x="${x-50}" y="${ys+25}" width="100" height="5" rx="2.5" fill="var(--node-fg)" opacity=".3"/><rect x="${x-50}" y="${ys+25}" width="${p*100}" height="5" rx="2.5" fill="var(--node-fg)"/>`});
+  if(!T.length)s+=`<text x="${cx}" y="${ys}" text-anchor="middle" fill="var(--muted)" font-size="13" font-family="system-ui,sans-serif">Los recolectores aparecerán al cargar sus archivos</text>`;
+  $("org").innerHTML=s+"</svg>"}
+
+const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;
+const COLS=["recolector","recolector_id","proyecto","codigo_especie","altura_m","x","y","elevacion_m","precision_gps_m","fecha_captura","epsg","id_registro"];
+function csv(list){return "﻿"+[COLS.join(",")].concat(list.map(r=>COLS.map(k=>["recolector","proyecto","codigo_especie"].includes(k)?q(r[k]):(r[k]??"")).join(","))).join("\r\n")}
+function dl(text,name,type){const u=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
+const d=()=>new Date().toISOString().slice(0,10);
+$("eCsv").onclick=()=>rows.length?dl(csv(rows),`especies_consolidado_${d()}.csv`,"text/csv"):alert("No hay registros cargados.");
+$("eGeo").onclick=()=>{if(!rows.length)return alert("No hay registros cargados.");const ep=[...new Set(rows.map(r=>r.epsg))];
+  ep.forEach(e=>{const L=rows.filter(r=>r.epsg===e);dl(JSON.stringify({type:"FeatureCollection",crs:{type:"name",properties:{name:"urn:ogc:def:crs:EPSG::"+e}},
+    features:L.map(r=>({type:"Feature",geometry:{type:"Point",coordinates:[r.x,r.y,r.elevacion_m]},properties:{recolector:r.recolector,codigo:r.codigo_especie,altura_m:r.altura_m,elevacion_m:r.elevacion_m,precision_gps_m:r.precision_gps_m,fecha:r.fecha_captura,id:r.id_registro}}))}),
+    `especies_consolidado_EPSG${e}_${d()}.geojson`,"application/geo+json")})};
+$("team").addEventListener("click",e=>{const b=e.target.closest("[data-x]");if(!b)return;const L=rows.filter(r=>r.recolector_id===b.dataset.x);dl(csv(L),`especies_${b.dataset.x}_${d()}.csv`,"text/csv")});
+$("clear").onclick=async()=>{if(!confirm("¿Vaciar el panel? Se borran los registros cargados en este navegador (no los de los celulares)."))return;await tx("readwrite",s=>s.clear());rows=[];render()};
+
+$("lGo").onclick=()=>{const u=new URL("index.html",location.href);const n=$("lN").value.trim();if(n)u.searchParams.set("r",n);
+  if($("lP").value.trim())u.searchParams.set("p",$("lP").value.trim());u.searchParams.set("src",$("lS").value);u.searchParams.set("meta",meta());
+  $("lOut").textContent=u.href;$("lOut").hidden=false;$("lCopy").hidden=false};
+$("lCopy").onclick=async()=>{try{await navigator.clipboard.writeText($("lOut").textContent);$("lCopy").textContent="Copiado"}catch(e){const r=document.createRange();r.selectNodeContents($("lOut"));getSelection().removeAllRanges();getSelection().addRange(r)}};
+
+(async()=>{try{db=await openDB();rows=await tx("readonly",s=>s.getAll())||[]}catch(e){$("impMsg").textContent="Este navegador no permite guardar datos; usa Chrome o Edge normal (no incógnito)."}render()})();
+if("serviceWorker" in navigator&&location.protocol.startsWith("http"))navigator.serviceWorker.register("sw.js").catch(()=>{});
+})();
+</script>
+</body>
+</html>
